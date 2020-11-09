@@ -18,11 +18,13 @@
 
 """Tests for horovod.tensorflow.mpi_ops."""
 
+
+import os
+# os.environ["CUDA_VISIBLE_DEVICES"]="0,1"
 from distutils.version import LooseVersion
 
 import itertools
 import numpy as np
-import os
 import math
 import tensorflow as tf
 from tensorflow.python.framework import ops
@@ -34,7 +36,7 @@ import horovod.tensorflow as hvd
 
 
 def test_horovod_allreduce_multi_gpu(enable_timeline=False, warmup=5, steps=20,
-                save_profiling_graph=False, chain_len=10):
+                save_profiling_graph=False):
     """Test that the allreduce works on multiple GPUs.
 
     This test will crash badly if used with an MPI implementation that does
@@ -68,7 +70,6 @@ def test_horovod_allreduce_multi_gpu(enable_timeline=False, warmup=5, steps=20,
     
     avg_time_list = []
     config=tf.ConfigProto(allow_soft_placement=True, log_device_placement=False)
-    config.gpu_options.visible_device_list = str(hvd.local_rank())
     for shape_h in h_range:
         hvd_op_list = []
         tf.reset_default_graph()
@@ -82,9 +83,9 @@ def test_horovod_allreduce_multi_gpu(enable_timeline=False, warmup=5, steps=20,
             options = tf.RunOptions(output_partition_graphs=True)
             run_metadata = tf.RunMetadata()
         with tf.device("/gpu:%d" % local_rank):
-            tensor = tf.random.uniform(
-                [shape_h, shape_w], 0.0, 1.0, dtype=dtype)
-            for i in range(chain_len):
+            tensor = tf.constant(1.0,
+                shape=[shape_h, shape_w], dtype=dtype)
+            for i in range(100):
                 summed = hvd.allreduce(tensor, average=False)
                 hvd_op_list.append(summed)
             final_op = [tf.shape_n(hvd_op_list)]
@@ -119,9 +120,9 @@ def test_horovod_allreduce_multi_gpu(enable_timeline=False, warmup=5, steps=20,
         
         
     for shape_h in h_range:
-        data_size = shape_h * shape_w * 4 * chain_len
+        data_size = shape_h * shape_w * 4
         for avg_time_ms in avg_time_list:
-            print("%d*%d*%d=%d Byte, time(ms): %.3f" % (shape_h, shape_w, chain_len, data_size, avg_time_ms))
+            print("%d Byte, time(ms): %.3f" % (data_size, avg_time_ms))
 
 if __name__ == '__main__':
     avg_time_list = test_horovod_allreduce_multi_gpu(enable_timeline=True,save_profiling_graph=True)
