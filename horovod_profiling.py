@@ -68,6 +68,7 @@ def test_horovod_allreduce_multi_gpu(enable_timeline=False, warmup=5, steps=20,
     
     avg_time_list = []
     config=tf.ConfigProto(allow_soft_placement=True, log_device_placement=False)
+    config.gpu_options.visible_device_list = str(hvd.local_rank())
     for shape_h in h_range:
         hvd_op_list = []
         tf.reset_default_graph()
