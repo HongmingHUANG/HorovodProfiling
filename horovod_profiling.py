@@ -19,7 +19,7 @@
 """Tests for horovod.tensorflow.mpi_ops."""
 
 from distutils.version import LooseVersion
-
+from google.protobuf import text_format
 import itertools
 import numpy as np
 import os
@@ -68,7 +68,7 @@ def test_horovod_allreduce_multi_gpu(enable_timeline=False, warmup=5, steps=20,
     
     avg_time_list = []
     config=tf.ConfigProto(allow_soft_placement=True, log_device_placement=False)
-    config.gpu_options.visible_device_list = str(hvd.local_rank())
+    #config.gpu_options.visible_device_list = str(hvd.local_rank())
     if hvd.local_rank()!=0:
         enable_timeline=False
     for shape_h in h_range:
@@ -86,8 +86,8 @@ def test_horovod_allreduce_multi_gpu(enable_timeline=False, warmup=5, steps=20,
         with tf.device("/gpu:%d" % local_rank):
             #tensor = tf.random.uniform(
             #    [shape_h, shape_w], 0.0, 1.0, dtype=dtype)
-            data_a = tf.const(1.0, shape=[shape_h, shape_w], dtype=dtype)
-            data_b = tf.const(2.0, shape=[shape_h, shape_w], dtype=dtype)
+            data_a = tf.constant(1.0, shape=[shape_h, shape_w], dtype=dtype)
+            data_b = tf.constant(2.0, shape=[shape_h, shape_w], dtype=dtype)
             tensor = data_a + data_b
             for i in range(chain_len):
                 summed = hvd.allreduce(tensor, average=False)
@@ -95,6 +95,10 @@ def test_horovod_allreduce_multi_gpu(enable_timeline=False, warmup=5, steps=20,
             final_op = [tf.shape_n(hvd_op_list)]
             if enable_timeline:
                 final_op.append(increase_step_op)
+        graph_def = tf.get_default_graph()
+        if hvd.local_rank() == 0:
+            with open('basic_graph.pbtxt', 'w') as fdout:
+                fdout.write(text_format.MessageToString(graph_def))
         with tf.train.MonitoredTrainingSession(config=config,hooks=hooks) as sess:
             avg_time_ms = 0.0
             for i in range(steps):
