@@ -69,6 +69,8 @@ def test_horovod_allreduce_multi_gpu(enable_timeline=False, warmup=5, steps=20,
     avg_time_list = []
     config=tf.ConfigProto(allow_soft_placement=True, log_device_placement=False)
     config.gpu_options.visible_device_list = str(hvd.local_rank())
+    if hvd.local_rank()!=0:
+        enable_timeline=False
     for shape_h in h_range:
         hvd_op_list = []
         tf.reset_default_graph()
@@ -82,8 +84,11 @@ def test_horovod_allreduce_multi_gpu(enable_timeline=False, warmup=5, steps=20,
             options = tf.RunOptions(output_partition_graphs=True)
             run_metadata = tf.RunMetadata()
         with tf.device("/gpu:%d" % local_rank):
-            tensor = tf.random.uniform(
-                [shape_h, shape_w], 0.0, 1.0, dtype=dtype)
+            #tensor = tf.random.uniform(
+            #    [shape_h, shape_w], 0.0, 1.0, dtype=dtype)
+            data_a = tf.const(1.0, shape=[shape_h, shape_w], dtype=dtype)
+            data_b = tf.const(2.0, shape=[shape_h, shape_w], dtype=dtype)
+            tensor = data_a + data_b
             for i in range(chain_len):
                 summed = hvd.allreduce(tensor, average=False)
                 hvd_op_list.append(summed)
