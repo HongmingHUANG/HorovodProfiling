@@ -86,8 +86,12 @@ def test_horovod_allreduce_multi_gpu(enable_timeline=False, warmup=5, steps=20,
         with tf.device("/gpu:%d" % local_rank):
             #tensor = tf.random.uniform(
             #    [shape_h, shape_w], 0.0, 1.0, dtype=dtype)
-            data_a = tf.constant(1.0, shape=[shape_h, shape_w], dtype=dtype)
-            data_b = tf.constant(2.0, shape=[shape_h, shape_w], dtype=dtype)
+            tensor = tf.random.uniform(
+                [shape_h, shape_w], 0.0, 1.0, dtype=dtype)
+            tensor = tf.random.uniform(
+                [shape_h, shape_w], 0.0, 1.0, dtype=dtype)
+            #data_a = tf.constant(1.0, shape=[shape_h, shape_w], dtype=dtype)
+            #data_b = tf.constant(2.0, shape=[shape_h, shape_w], dtype=dtype)
             tensor = data_a + data_b
             for i in range(chain_len):
                 summed = hvd.allreduce(tensor, average=False)
