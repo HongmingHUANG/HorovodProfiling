@@ -95,7 +95,7 @@ def test_horovod_allreduce_multi_gpu(enable_timeline=False, warmup=5, steps=20,
             final_op = [tf.shape_n(hvd_op_list)]
             if enable_timeline:
                 final_op.append(increase_step_op)
-        graph_def = tf.get_default_graph()
+        graph_def = tf.get_default_graph().as_graph_def()
         if hvd.local_rank() == 0:
             with open('basic_graph.pbtxt', 'w') as fdout:
                 fdout.write(text_format.MessageToString(graph_def))
